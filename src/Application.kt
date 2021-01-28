@@ -1,69 +1,52 @@
 package me.spanchenko
 
 import io.ktor.application.*
-import io.ktor.response.*
-import io.ktor.request.*
-import io.ktor.routing.*
-import io.ktor.http.*
-import io.ktor.locations.*
 import io.ktor.features.*
-import org.slf4j.event.*
+import io.ktor.http.*
+import io.ktor.request.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.serialization.*
+import me.spanchenko.config.DatabaseInitializer
+import me.spanchenko.module.appModule
+import me.spanchenko.route.apiRoutes
+import org.jetbrains.exposed.dao.exceptions.EntityNotFoundException
+import org.koin.ktor.ext.Koin
+import org.koin.ktor.ext.inject
+import org.slf4j.event.Level
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
-@Suppress("unused") // Referenced in application.conf
-@kotlin.jvm.JvmOverloads
 fun Application.module(testing: Boolean = false) {
-    install(Locations) {
+    install(Koin) {
+        modules(appModule)
     }
+
+    val databaseInitializer by inject<DatabaseInitializer>()
+    databaseInitializer.initDatabase()
 
     install(CallLogging) {
         level = Level.INFO
         filter { call -> call.request.path().startsWith("/") }
     }
 
+    install(DefaultHeaders)
+
     install(ContentNegotiation) {
+        json()
     }
 
     routing {
-        get("/") {
-            call.respondText("HELLO WORLD!", contentType = ContentType.Text.Plain)
-        }
-
-        get<MyLocation> {
-            call.respondText("Location: name=${it.name}, arg1=${it.arg1}, arg2=${it.arg2}")
-        }
-        // Register nested routes
-        get<Type.Edit> {
-            call.respondText("Inside $it")
-        }
-        get<Type.List> {
-            call.respondText("Inside $it")
-        }
+        apiRoutes()
 
         install(StatusPages) {
-            exception<AuthenticationException> { cause ->
-                call.respond(HttpStatusCode.Unauthorized)
+            exception<NotFoundException> {
+                call.respond(HttpStatusCode.NotFound)
             }
-            exception<AuthorizationException> { cause ->
-                call.respond(HttpStatusCode.Forbidden)
+            exception<EntityNotFoundException> {
+                call.respond(HttpStatusCode.NotFound)
             }
-
         }
     }
 }
-
-@Location("/location/{name}")
-class MyLocation(val name: String, val arg1: Int = 42, val arg2: String = "default")
-
-@Location("/type/{name}") data class Type(val name: String) {
-    @Location("/edit")
-    data class Edit(val type: Type)
-
-    @Location("/list/{page}")
-    data class List(val type: Type, val page: Int)
-}
-
-class AuthenticationException : RuntimeException()
-class AuthorizationException : RuntimeException()
 
