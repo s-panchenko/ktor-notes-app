@@ -9,9 +9,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
-# Updates for Gradle dependencies used in the app      
-    - package-ecosystem: gradle
-      directory: "/"
-      schedule:
-        interval: "daily"
-      open-pull-requests-limit: 10
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
