@@ -12,7 +12,7 @@ val kotestVersion: String by project
 plugins {
     application
     kotlin("jvm") version "1.4.21"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.4.21"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
 }
 
 group = "me.spanchenko"
